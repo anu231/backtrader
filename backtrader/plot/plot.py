@@ -162,6 +162,10 @@ class Plot_OldSync(with_metaclass(MetaParams, object)):
 
         figs = []
 
+        if 'recentPlot' in kwargs.keys():
+            if slen > max(kwargs['recentPlot']):
+                pranges = [[end - x, end, x] for x in kwargs['recentPlot']]
+
         for numfig in range(numfigs):
             # prepare a figure
             fig = self.pinf.newfig(figid, numfig, self.mpyplot)

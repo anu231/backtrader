@@ -272,6 +272,7 @@ class IBBroker(with_metaclass(MetaIBBroker, BrokerBase)):
 
         self._lock_orders = threading.Lock()  # control access
         self.orderbyid = dict()  # orders by order id
+        self.ext_ordersbyid = dict()
         self.executions = dict()  # notified executions
         self.ordstatus = collections.defaultdict(dict)
         self.notifs = queue.Queue()  # holds orders which are notified
@@ -567,9 +568,19 @@ class IBBroker(with_metaclass(MetaIBBroker, BrokerBase)):
             try:
                 order = self.orderbyid[msg.orderId]
             except (KeyError, AttributeError):
-                return  # no order or no id in error
+                if msg.contract.m_conId == self.ib.datas[0].contract.m_conId:
+                    self.ext_ordersbyid[msg.orderId] = msg.order
+                    return
+                else:
+                    return  # no order or no id in error
 
             if msg.orderState.m_status in ['PendingCancel', 'Cancelled',
                                            'Canceled']:
                 # This is most likely due to an expiration]
                 order._willexpire = True
+
+    def get_open_orders(self):
+        self.ib.conn.reqAllOpenOrders()
+
+    def cancel_ext_order(self, order_id):
+        self.ib.cancelOrder(order_id)
